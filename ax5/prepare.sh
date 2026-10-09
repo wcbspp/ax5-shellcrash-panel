@@ -11,6 +11,7 @@ if [ ! -x "$R/CrashCore" ]; then
  tar -xzf "$C/cache/core-armv7.tar.gz" -C "$R" CrashCore
  chmod 700 "$R/CrashCore"
 fi
+lua "$C/ax5/config-normalize.lua" migrate
 if [ "$KIND" = meta ]; then
  lua "$C/ax5/mihomo.lua" generate "$C/configs/config.json" "$R/config.yaml"
  "$C/ax5/check-binary.sh" meta "$R/CrashCore" -t -d "$R" -f "$R/config.yaml" >> "$R/service.log" 2>&1

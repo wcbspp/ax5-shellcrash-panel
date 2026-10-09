@@ -8,7 +8,7 @@ function paintKernel(){
  if(!blocked&&!coreKindDirty)el('core-kind').value=s.core_kind==='meta'?'meta':'singbox';
  const hasUpdate=k.available&&k.fits&&k.git_blob!==s.core_blob;
  el('core-update').disabled=blocked||s.pressure==='protect';
- el('core-summary').textContent=k.available?'工具源 '+(k.kind==='meta'?'mihomo ':'sing-box ')+k.version+(k.kind===s.core_kind&&k.version.replace(/^v/,'')===s.core_version.replace(/^v/,'')?'（与运行版本一致）':'')+(k.checked?' · '+new Date(k.checked*1000).toLocaleTimeString('zh-CN',{hour12:false}):''):k.checked?'检查未完成，当前内核继续运行':'按需查询工具源与镜像版本，开机不查询新版本';
+ el('core-summary').textContent=k.available?'工具版本索引 '+(k.kind==='meta'?'mihomo ':'sing-box ')+k.version+(k.kind===s.core_kind&&k.version.replace(/^v/,'')===s.core_version.replace(/^v/,'')?'（与运行版本一致）':'')+(k.checked?' · '+new Date(k.checked*1000).toLocaleTimeString('zh-CN',{hour12:false}):''):k.checked?'检查未完成，当前内核继续运行':'按需查询工具版本索引与镜像；索引可能高于 mini 实际包版本，运行版本以安装校验为准';
 }
 async function kernelAction(action){
  if(manageBusy||nativeState?.active)return;
@@ -66,7 +66,7 @@ function paintMonitor(){
  el('monitor-available').textContent=mb(s.available_kb);el('monitor-rss').textContent=mb(s.rss_kb);
  el('monitor-pressure').textContent=({normal:'正常',warning:'余量偏低',protect:'保护中'}[s.pressure]||'—');el('monitor-connections').textContent=String(s.conntrack||0);
  const limits=s.memory_limits||{warning_mb:16,protect_mb:12,cleanup_mb:0};
- el('memory-limits-summary').textContent='提醒 '+limits.warning_mb+' · 保护 '+limits.protect_mb+' · 清理 '+(limits.cleanup_mb?limits.cleanup_mb+' MB':'每分钟');
+ el('memory-limits-summary').textContent='提醒 '+limits.warning_mb+' · 保护 '+limits.protect_mb+' · 清理 '+(limits.cleanup_mb?limits.cleanup_mb+' MB':'关闭');
  if(!memoryLimitsDirty){el('memory-warning').value=limits.warning_mb;el('memory-protect').value=limits.protect_mb;el('memory-trigger').value=limits.cleanup_mb}
  el('memory-limits-save').disabled=manageBusy||s.active||s.available_kb<12288;
  const c=s.cleanup||{};if(c.time)el('cleanup-result').textContent=(c.manual?'手动':'自动')+'清理 · '+new Date(c.time*1000).toLocaleString('zh-CN',{hour12:false})+' · 删除 '+c.removed+' 个临时文件，裁剪 '+c.trimmed+' 份日志 · 文件减少 '+(c.file_bytes/1024).toFixed(1)+' KB · 可用 '+mb(c.before_kb)+' → '+mb(c.after_kb)+(c.file_bytes===0?' · 没有可清理文件':'');

@@ -14,6 +14,7 @@ end
 local function guard()if (M.memory().MemAvailable or 0)<M.limits().protect_mb*1024 then fail('memory_protected')end end
 local function current()return M.load(M.C..'/configs/config.json')end
 local function checked_save(cfg)
+ dofile(M.C..'/ax5/config-normalize.lua').normalize(cfg)
  M.save(M.R..'/candidate.json',cfg)
  local old=M.read(M.C..'/configs/config.json');local running=M.pid()>0
  if old==M.read(M.R..'/candidate.json')then return end
@@ -94,6 +95,8 @@ local function execute()
   local ok,err=pcall(checked_save,cfg)
   if not ok then M.write(M.C..'/configs/fake_ip_filter.list',oldfilter);M.write(M.C..'/configs/dns-mode',oldmode);if M.pid()>0 then pcall(service,'restart')end;fail(err)end
   if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','dns_updated',false)else phase('done','configuration_saved_backup_pending',false)end
+ elseif a=='domainupdate'then
+  guard();phase('working','database_updating',true);local result=dofile(M.C..'/ax5/database.lua').update(M,service);phase('done',result,false)
  elseif a=='rules'then
   guard();phase('fetching','downloading_rules',true);fetched('https://ispip.clang.cn/all_cn.txt',M.R..'/rules.raw')
   if not M.run('awk -f '..M.C..'/ax5/rules_validate.awk '..M.R..'/rules.raw > '..M.R..'/rules.new')then fail('rules_invalid_previous_kept')end

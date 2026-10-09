@@ -107,6 +107,8 @@ if [ "$wasrunning" = 1 ]; then
  done
  [ "$ready" = 1 ] || { echo 'New core failed health check.' >&2; exit 1; }
 fi
+mkdir -p "$C/cache/targets"
+cp "$C/cache/core.env" "$C/cache/targets/$nextkind.env"
 committed=1
 stopped=0
 if ! "$C/ax5/mirror-sync.sh";then

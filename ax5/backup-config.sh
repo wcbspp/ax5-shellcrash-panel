@@ -6,7 +6,8 @@ umask 077
 file="$R/config-backup.tar.gz"
 trap 'rm -f "$file"' EXIT
 # Private receiver path only; no configuration or identity is published over HTTP.
-tar -czf "$file" -C "$C" configs ruleset cache/core.env cache/core.sha256
+mkdir -p "$C/cache/targets"
+tar -czf "$file" -C "$C" configs ruleset cache/core.env cache/core.sha256 cache/targets
 if "$C/ax5/mirror-upload.sh" backup "$file" tar.gz > "$R/backup-sha"; then
  date +%s > "$C/configs/backup-time"
  rm -f "$C/configs/backup-pending"
