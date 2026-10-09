@@ -1,1 +1,6 @@
-Frontend adapted from wcbspp/padavan-shellcrash-panel v1.0.2 (GPL-3.0-only). ShellCrash tool adapters target upstream 1.9.4release. Upstream tool source is not bundled here; patches preserve upstream copyright headers. Kernel archives are unmodified ShellCrash ARMv7 builds (sing-box mini 1.12.13 and mihomo v1.19.28); their component licenses remain applicable. Private configuration and SSH keys are excluded.
+Frontend adapted from wcbspp/padavan-shellcrash-panel (GPL-3.0-only).
+The unmodified ShellCrash 1.9.4release archive is redistributed in vendor/ with its upstream license and source metadata. AX5 patches are distributed separately and preserve upstream copyright headers. Source: https://github.com/juewuy/ShellCrash
+Entware script adaptation originates from monlor/MIXBOX-ARCHIVE / monlor/mbfiles (GPL-3.0); original copyright headers are retained.
+CN IPv4 seed originated from the Padavan china-IP rule table. cn.srs and cn.mrs are public CN domain datasets distributed by the ShellCrash tool; upstream rules source: https://github.com/juewuy/ShellCrash/tree/dev/rules . Their original licenses remain applicable; they are not runtime user configurations.
+Kernel archives are not bundled. The installer downloads the unmodified ShellCrash ARMv7 sing-box mini 1.12.13 build with a fixed source and SHA256; component licenses remain applicable.
+Private configurations, passwords, device identities and SSH keys are excluded.

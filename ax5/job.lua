@@ -7,7 +7,7 @@ local function fail(msg) error(msg,0)end
 local function service(action)
  if action=='restart'then service('stop');service('start');return end
  if action=='stop'then M.write(M.C..'/configs/enabled','0\n')else M.write(M.C..'/configs/enabled','1\n')end
- if not M.run('/etc/init.d/shellcrash '..action..' >> '..M.R..'/service.log 2>&1')then fail('service_'..action..'_failed')end
+ if not M.run('/data/ShellCrash-tool/start.sh '..action..' >> '..M.R..'/service.log 2>&1')then fail('service_'..action..'_failed')end
  if action=='stop'then for i=1,15 do if M.pid()==0 then return end;M.run('sleep 1')end;fail('service_stop_failed')end
  if action~='stop'then for i=1,12 do if M.pid()>0 and M.api('/version')~=''then return end;M.run('sleep 1')end;fail('service_start_failed')end
 end
@@ -41,7 +41,7 @@ local function checked_save(cfg)
 end
 local function fetched(url,file)
  if #url>2048 or not url:match('^https?://')or url:find('[%s\r\n]')then fail('invalid_subscription_url')end
- local base='curl -4 -fsSL --connect-timeout 8 --max-time 50 --max-filesize 262144 '
+ local base='curl -4 -fsSL --connect-timeout 8 --max-time 25 --max-filesize 262144 '
  local proxy=M.pid()>0 and '--proxy http://127.0.0.1:7890 --noproxy "" 'or'--noproxy "*" '
  if not M.run(base..proxy..M.quote(url)..' -o '..M.quote(file))then
   if not M.run(base..'--noproxy "*" '..M.quote(url)..' -o '..M.quote(file))then fail('subscription_download_failed')end
@@ -55,14 +55,14 @@ end
 local function execute()
  local a=req.action
  if a=='start'or a=='stop'or a=='restart'then service(a);phase('done','service_operation_complete',false)
- elseif a=='clear'then M.write(M.R..'/core.log','');M.write(M.R..'/service.log','');phase('done','logs_cleared',false)
+ elseif a=='clear'then M.write(M.R..'/core.log','');M.write(M.R..'/service.log','');M.write(M.R..'/subscription-tool.log','');phase('done','logs_cleared',false)
  elseif a=='cleanup'then M.cleanup(true);phase('done','memory_cleaned',false)
  elseif a=='memcfg'then
   guard();local w,p,c=(args[2]or''):match('^w(%d+)p(%d+)c(%d+)$');w,p,c=tonumber(w),tonumber(p),tonumber(c)
   if not w or not p or not c or p<12 or w<=p or w>64 or(c~=0 and(c<w or c>96))then fail('memory_settings_invalid')end
   M.save(M.C..'/configs/memory.json',{warning_mb=w,protect_mb=p,cleanup_mb=c});phase('done','memory_settings_saved',false)
  elseif a=='fetch'then
-  guard();phase('fetching','downloading_subscription',true);local url=upload('source'):gsub('%s+$','');fetched(url,M.R..'/subscription.raw');phase('downloaded','subscription_downloaded',false)
+  guard();phase('fetching','downloading_subscription',true);local url=upload('source'):gsub('%s+$','');local mode=args[2]=='convert'and'convert'or'direct';if not M.run(M.C..'/ax5/subscription-tool.sh ax5 '..mode)then if mode=='direct'then fetched(url,M.R..'/subscription.raw')else fail('subscription_download_failed')end end;phase('downloaded','subscription_downloaded',false)
  elseif a=='apply'then
   guard();local out=M.json.decode(upload('bounds'));if type(out)~='table'or #out<3 or #out>540 then fail('invalid_upload')end
   local count=0;for _,n in ipairs(out)do
@@ -75,7 +75,7 @@ local function execute()
   out[#out+1]={type='selector',tag='GLOBAL',outbounds={'proxy-main'},default='proxy-main'}
   local cfg=current();cfg.outbounds=out;checked_save(cfg)
   M.write(M.C..'/configs/subscription.new',upload('source'));assert(os.rename(M.C..'/configs/subscription.new',M.C..'/configs/subscription'))
-  if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','subscription_updated',false)else phase('done','configuration_saved_backup_pending',false)end
+  os.remove(M.C..'/configs/needs-subscription');if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','subscription_updated',false)else phase('done','configuration_saved_backup_pending',false)end
  elseif a=='dns'then
   guard();local mode=args[2]=='real'and'redir_host'or args[2]=='mix'and'mix';if not mode then fail('invalid_upload')end
   local filter=upload('filter');if #filter>16000 then fail('invalid_filter_previous_kept')end
@@ -94,7 +94,7 @@ local function execute()
   M.write(M.C..'/configs/fake_ip_filter.list',filter);M.write(M.C..'/configs/dns-mode',mode)
   local ok,err=pcall(checked_save,cfg)
   if not ok then M.write(M.C..'/configs/fake_ip_filter.list',oldfilter);M.write(M.C..'/configs/dns-mode',oldmode);if M.pid()>0 then pcall(service,'restart')end;fail(err)end
-  if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','dns_updated',false)else phase('done','configuration_saved_backup_pending',false)end
+  os.remove(M.C..'/configs/needs-subscription');if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','dns_updated',false)else phase('done','configuration_saved_backup_pending',false)end
  elseif a=='domainupdate'then
   guard();phase('working','database_updating',true);local result=dofile(M.C..'/ax5/database.lua').update(M,service);phase('done',result,false)
  elseif a=='rules'then
@@ -104,7 +104,7 @@ local function execute()
   if #ips<1000 or #ips>10000 then fail('rules_invalid_previous_kept')end
   local cfg=current();local changed=0;for _,r in ipairs(cfg.route.rules)do if r.ip_cidr and #r.ip_cidr>1000 then r.ip_cidr=ips;changed=changed+1 end end
   if changed~=1 then fail('configuration_template_missing')end
-  checked_save(cfg);M.write(M.C..'/configs/cn_ip.txt',table.concat(ips,'\n')..'\n');M.write(M.C..'/configs/rules-date',os.date('%Y-%m-%d %H:%M:%S'));if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','rules_updated',false)else phase('done','configuration_saved_backup_pending',false)end
+  checked_save(cfg);M.write(M.C..'/configs/cn_ip.txt',table.concat(ips,'\n')..'\n');M.write(M.C..'/configs/rules-date',os.date('%Y-%m-%d %H:%M:%S'));os.remove(M.C..'/configs/needs-subscription');if M.run(M.C..'/ax5/backup-config.sh >> '..M.R..'/service.log 2>&1')then phase('done','rules_updated',false)else phase('done','configuration_saved_backup_pending',false)end
  elseif a=='coreupdate'then
   guard();local kind=args[2];if kind~='singbox'and kind~='meta'then fail('invalid_core')end
   phase('working','downloading_core_update',true)

@@ -29,9 +29,13 @@ mixbox
 
 ## Entware 挂载检查
 
-归档 Entware 脚本使用了 `mount -o blind`，正确参数应为 `mount -o bind`。这台 AX5 的 /opt 与 Mixbox 持久目录没有绑定，且两边程序、运行库版本不同。不能将旧 /opt 直接删除，也不能在已有身份配置时直接盖上挂载。
+归档脚本中的 `mount -o blind` 应为 `mount -o bind`。旧 /opt 目录存在时还可能跳过绑定，从而让程序、运行库和身份数据分散在两套目录。
 
-首次安装前检查 `apps/entware/scripts/entware.sh` 中的挂载参数，修正拼写后再启用 Entware；检查挂载结果和 `/opt/bin/opkg` 是否来自预期目录。对于已有环境，应先备份两套目录、确认使用中的运行库和身份，再安排迁移。本项目没有将这一归档脚本当作适用于所有固件的一键安装器。
+本次已合并现有 AX5 的两套目录：保留通过测试的基础运行库、新版程序和原 ZeroTier 身份，再绑定 `/etc/mixbox/.Entware` 到 `/opt`。`zerotier/entware-mount.sh` 会核对绑定结果；已有身份未迁移或 ZeroTier 正在运行时拒绝改变挂载。`zerotier/entware.init` 在开机早期恢复绑定，原 `entware.sh` 同时修正挂载和状态判断。
+
+**已有环境必须先备份两套目录、合并身份与依赖，再使用绑定助手。** 这些文件不自动替你合并未知设备上的 Entware。正确挂载后验证 opkg、curl、ZeroTier 和重启恢复，确认正常再移除旧目录。
+
+本次重启后两侧目录的设备号与 inode 相同，opkg、curl 和 ZeroTier 正常；清除已备份的重复 /opt 后，overlay 可用空间由约 2.2 MB 增至 6.2 MB。ZeroTier 的真实数据也在持久目录中，未更换设备身份。
 
 ## 应用本项目的修复
 
@@ -46,4 +50,4 @@ mixbox
 
 ZeroTier 1.14.1 出现过段错误，关闭自身 UPnP/NAT-PMP 端口映射后恢复。更新为官方 ARMv7 包对应的 1.16.0，保留设备身份；两次整机重启后均恢复 ONLINE / OK，Moon 连接正常。
 
-当前运行入口指向 Mixbox 的持久程序，仍使用 /opt 中已验证的运行库和原数据目录。两套运行库内容不同，因此没有整体移除；只清理旧程序、闲置 locale 数据及可重新下载的软件索引。K2P 固件内置 ZeroTier 属于另一种 MIPS/uClibc 环境，不能复用这里的 ARMv7 程序。
+当前 `/opt` 绑定到 Mixbox 持久目录，使用同一套已验证的基础运行库、ZeroTier 1.16.0 和身份数据。K2P 固件内置 ZeroTier 属于 MIPS/uClibc 环境，不能复用这里的 ARMv7 程序。

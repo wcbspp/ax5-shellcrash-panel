@@ -7,7 +7,7 @@ version=(root/'VERSION').read_text().strip()
 name='ax5-shellcrash-panel-'+version
 dist=root/'dist';dist.mkdir(exist_ok=True)
 files=[]
-for entry in ['README.md','VERSION','CHANGELOG.md','LICENSE','NOTICE','ax5','ui','zerotier','cloud','docs','tool-patches','tests','tools']:
+for entry in ['README.md','install.sh','bootstrap.sh','vendor','examples','VERSION','CHANGELOG.md','LICENSE','NOTICE','ax5','ui','zerotier','cloud','docs','tool-patches','tests','tools']:
  p=root/entry
  files += [p] if p.is_file() else [f for f in p.rglob('*') if f.is_file() and '__pycache__' not in f.parts and f.suffix!='.pyc']
 files=sorted(files)

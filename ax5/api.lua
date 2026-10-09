@@ -30,7 +30,7 @@ function A.read()
  local paths={filter=M.C..'/configs/fake_ip_filter.list',subscription=M.R..'/subscription.raw',memory=M.R..'/memory.csv',incidents=M.R..'/incidents',logs=M.R..'/core.log'}
  if not paths[kind]then reply({error='not_found'},404);return end
  H.prepare_content('text/plain');local text=M.read(paths[kind],262144)
- if kind=='logs'then text=text..'\n'..M.read(M.R..'/service.log',32768)..'\n'..M.read(M.R..'/worker.log',32768)..'\n'..M.read(M.R..'/last-exit.txt',16384);text=text:gsub('https?://[^%s]+','[链接已隐藏]')end
+ if kind=='logs'then text=text..'\n'..M.read(M.R..'/service.log',32768)..'\n'..M.read(M.R..'/worker.log',32768)..'\n'..M.read(M.R..'/last-exit.txt',16384)..'\n'..M.read(M.R..'/subscription-tool.log',8192);text=text:gsub('https?://[^%s]+','[链接已隐藏]')end
  H.write(text)
 end
 function A.upload()
