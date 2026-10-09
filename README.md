@@ -27,6 +27,10 @@
 
 当前只使用国内域名库和国内 IP 网段，不需要安装完整 GeoSite。具体见[数据库说明](docs/数据库与规则.md)。
 
+## Mixbox 与 ZeroTier
+
+安装来源与修复方法见[Mixbox、Entware 和 ZeroTier](docs/Mixbox与ZeroTier.md)。已核对可用下载源，保留现有设备身份。
+
 ## 验证与源码
 
 已验证 sing-box 1.12.13 / mihomo v1.19.28 切换、两种内核本地恢复、DNS 例外及国内分流。AX5 完整重启后面板、代理和 ZeroTier 恢复。长期高负载仍需观察。[详细测试记录](docs/验证记录.md) · [变更记录](CHANGELOG.md)
