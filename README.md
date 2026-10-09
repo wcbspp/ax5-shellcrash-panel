@@ -6,7 +6,9 @@
 
 ## 安装
 
-适用 **Redmi AX5 / RA67，原厂开发版 1.0.105，已解锁 SSH**。其他型号和固件暂未验证。以 root 登录路由器后执行：
+适用 **Redmi AX5 / RA67，原厂开发版 1.0.105**。其他型号和固件暂未验证。
+
+**先解锁 SSH，再安装面板。** 小米原厂系统需要先开启 SSH，可参考 [XMiR-Patcher](https://github.com/openwrt-xiaomi/xmir-patcher)，按该项目说明核对型号、固件并操作。确认能以 root 登录路由器后，再执行下面的安装命令：
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wcbspp/ax5-shellcrash-panel/main/bootstrap.sh -o /tmp/ax5-panel-install.sh
@@ -21,7 +23,13 @@ sh /tmp/ax5-panel-install.sh
 
 ## 页面预览
 
-包含路由器导航；截图中的 ZeroTier 网络信息已隐藏。
+小米原厂管理页实机截图：顶部菜单已加入 **ShellCrash**。当前设备使用中继模式，因此原厂菜单显示“中继状态／中继设置”；路由模式的名称可能不同。截图不含浏览器地址栏、设备序列号和 MAC 地址。
+
+![小米原厂管理页：路由状态与 ShellCrash 入口](docs/小米管理页-路由状态.jpg)
+
+![小米原厂管理页：路由设置与 ShellCrash 入口](docs/小米管理页-路由设置.jpg)
+
+进入 ShellCrash 后的节点与监控页面；监控截图中的 ZeroTier 网络信息已隐藏。
 
 ![小米控制台中的节点管理](docs/小米控制台-节点.png)
 
