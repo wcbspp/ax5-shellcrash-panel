@@ -12,7 +12,16 @@ function A.build(c)
   else
    local t=o.type;local tls=o.tls or{};local p={name=o.tag,type=t,server=o.server,port=o.server_port,udp=false}
    if t=='anytls'or t=='trojan'then p.password=o.password
-   elseif t=='shadowsocks'then p.type='ss';p.cipher=o.method;p.password=o.password
+   elseif t=='shadowsocks'then
+    p.type='ss';p.cipher=o.method;p.password=o.password
+    if o.plugin and o.plugin~=''then
+     if o.plugin~='obfs-local'then error('当前适配未支持 SS 插件：'..o.plugin)end
+     local opts={};for k,v in (o.plugin_opts or''):gmatch('([^=;]+)=([^;]*)')do opts[k]=v end
+     if opts.obfs~='http'and opts.obfs~='tls'then error('SS 混淆模式无效')end
+     p.plugin='obfs';p['plugin-opts']={mode=opts.obfs,host=opts['obfs-host']or o.server}
+    end
+   elseif t=='shadowsocksr'then
+    p.type='ssr';p.cipher=o.method;p.password=o.password;p.protocol=o.protocol;p.obfs=o.obfs;p['protocol-param']=o.protocol_param;p['obfs-param']=o.obfs_param
    elseif t=='vmess'or t=='vless'then p.uuid=o.uuid;p.alterId=o.alter_id or 0;p.cipher=o.security or'auto';p.tls=tls.enabled or false;p.flow=o.flow
    else error('该节点协议暂无 AX5 跨内核转换：'..t)end
    p.sni=tls.server_name or o.server;p['skip-cert-verify']=tls.insecure or false;p.alpn=tls.alpn

@@ -3,7 +3,7 @@ import os,subprocess,tempfile,unittest,shutil,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class SubscriptionTests(unittest.TestCase):
- def fixture(self,mode='direct',failure=False,payload=None,platform='ax5'):
+ def fixture(self,mode='direct',failure=False,http=None,policy='s0a0',payload=None,platform='ax5'):
   td=tempfile.TemporaryDirectory();self.addCleanup(td.cleanup);p=Path(td.name);tool=p/'tool';ram=p/'ram';ram.mkdir();bin=p/'bin';bin.mkdir()
   # Actual upstream 1.9.4 generator and dependencies, shipped in the public package.
   subprocess.run(['tar','-xzf',str(ROOT/'vendor/ShellCrash-1.9.4.tar.gz'),'-C',str(p)],check=True)
@@ -24,21 +24,28 @@ import sys,os,shutil
 from pathlib import Path
 p=Path(os.environ['TEST_ROOT']);a=sys.argv[1:]
 with (p/'requests').open('a') as f:f.write(next(x for x in a if x.startswith('https://'))+'\\n')
+if os.environ.get('TEST_HTTP'):print(os.environ['TEST_HTTP'],end='');sys.exit(22)
 if os.environ.get('TEST_FAIL'):sys.exit(1)
 shutil.copyfile(p/'fixture',a[a.index('-o')+1])
+if '-w' in a:print('200',end='')
 ''');curl.chmod(0o700)
   env=dict(os.environ,PATH=str(bin)+os.pathsep+os.environ['PATH'],TEST_ROOT=str(p))
   if failure:env['TEST_FAIL']='1'
-  result=subprocess.run(['sh',str(f),platform,mode],env=env,capture_output=True,text=True)
+  if http:env['TEST_HTTP']=str(http)
+  result=subprocess.run(['sh',str(f),platform,mode,policy],env=env,capture_output=True,text=True)
   return p,tool,ram,result
  def test_direct_uses_native_without_touching_live_configuration(self):
   p,t,r,result=self.fixture();self.assertEqual(result.returncode,0,result.stderr);self.assertEqual((r/'subscription.raw').read_text(),(p/'fixture').read_text());self.assertEqual((t/'jsons/config.json').read_text(),'live-config-preserved');self.assertFalse([x for x in r.glob('subscription-tool.*') if x.is_dir()]);self.assertEqual(result.stdout,'')
  def test_native_converter_uses_selected_server(self):
   p,t,r,result=self.fixture('convert');self.assertEqual(result.returncode,0,result.stderr);requests=(p/'requests').read_text();self.assertIn('converter.example.com/sub?target=singbox',requests);self.assertNotIn('other.example.com',requests)
  def test_failure_does_not_switch_converter_or_change_live_config(self):
-  p,t,r,result=self.fixture('convert',True);self.assertNotEqual(result.returncode,0);self.assertNotIn('other.example.com',(p/'requests').read_text());self.assertNotIn('https://',(r/'subscription-tool.log').read_text());self.assertIn('curl=1',(r/'subscription-tool.log').read_text());self.assertEqual((t/'jsons/config.json').read_text(),'live-config-preserved');self.assertFalse((r/'subscription.raw').exists());self.assertFalse([x for x in r.glob('subscription-tool.*') if x.is_dir()])
+  p,t,r,result=self.fixture('convert',True);self.assertNotEqual(result.returncode,0);self.assertNotIn('other.example.com',(p/'requests').read_text());self.assertNotIn('subscription.example.com',(r/'subscription-tool.log').read_text());self.assertNotIn('private-fixture',(r/'subscription-tool.log').read_text());self.assertIn('curl=1',(r/'subscription-tool.log').read_text());self.assertEqual((t/'jsons/config.json').read_text(),'live-config-preserved');self.assertFalse((r/'subscription.raw').exists());self.assertFalse([x for x in r.glob('subscription-tool.*') if x.is_dir()])
  def test_invalid_converter_output_never_replaces_live_config(self):
   p,t,r,result=self.fixture('convert',payload='<html>failure</html>');self.assertNotEqual(result.returncode,0);self.assertFalse((r/'subscription.raw').exists());self.assertEqual((t/'jsons/config.json').read_text(),'live-config-preserved')
  def test_k2p_native_generation_with_root_server_list(self):
   p,t,r,result=self.fixture('convert',platform='k2p');self.assertEqual(result.returncode,0,result.stderr);self.assertTrue((r/'sub.raw').exists());self.assertNotIn('other.example.com',(p/'requests').read_text())
+ def test_http_503_reason_is_recorded_without_subscription_leak(self):
+  p,t,r,result=self.fixture('convert',http=503);self.assertNotEqual(result.returncode,0);self.assertEqual((r/'subscription.error').read_text().strip(),'subscription_http_503');self.assertIn('HTTP=503',(r/'subscription-tool.log').read_text());self.assertNotIn('subscription.example.com',(r/'subscription-tool.log').read_text());self.assertNotIn('private-fixture',(r/'subscription-tool.log').read_text());self.assertEqual((t/'jsons/config.json').read_text(),'live-config-preserved')
+ def test_unavailable_preflight_never_transmits_subscription(self):
+  p,t,r,result=self.fixture('convert',http=503,policy='s0a1');self.assertNotEqual(result.returncode,0);requests=(p/'requests').read_text();self.assertIn('other.example.com',requests);self.assertNotIn('private-fixture',requests);self.assertNotIn('url=',requests);self.assertEqual((t/'jsons/config.json').read_text(),'live-config-preserved')
 if __name__=='__main__' :unittest.main()

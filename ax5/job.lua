@@ -7,7 +7,7 @@ local function fail(msg) error(msg,0)end
 local function service(action)
  if action=='restart'then service('stop');service('start');return end
  if action=='stop'then M.write(M.C..'/configs/enabled','0\n')else M.write(M.C..'/configs/enabled','1\n')end
- if not M.run('/data/ShellCrash-tool/start.sh '..action..' >> '..M.R..'/service.log 2>&1')then fail('service_'..action..'_failed')end
+ if not M.run('SC_CONTROL_SOURCE=panel /data/ShellCrash-tool/start.sh '..action..' >> '..M.R..'/service.log 2>&1')then fail('service_'..action..'_failed')end
  if action=='stop'then for i=1,15 do if M.pid()==0 then return end;M.run('sleep 1')end;fail('service_stop_failed')end
  if action~='stop'then for i=1,12 do if M.pid()>0 and M.api('/version')~=''then return end;M.run('sleep 1')end;fail('service_start_failed')end
 end
@@ -61,8 +61,17 @@ local function execute()
   guard();local w,p,c=(args[2]or''):match('^w(%d+)p(%d+)c(%d+)$');w,p,c=tonumber(w),tonumber(p),tonumber(c)
   if not w or not p or not c or p<12 or w<=p or w>64 or(c~=0 and(c<w or c>96))then fail('memory_settings_invalid')end
   M.save(M.C..'/configs/memory.json',{warning_mb=w,protect_mb=p,cleanup_mb=c});phase('done','memory_settings_saved',false)
+ elseif a=='guard'then
+  local mode=args[2];if mode~='procd'and mode~='conservative'then fail('invalid_guard_mode')end
+  local path='/data/ShellCrash-tool/configs/ShellCrash.cfg';local old=M.read(path);local on=mode=='conservative'and'ON'or'OFF'
+  local was_running=M.pid()>0
+  if not M.run("CRASHDIR=/data/ShellCrash-tool; export CRASHDIR; . $CRASHDIR/libs/set_config.sh; setconfig start_old "..on)then M.write(path,old);fail('guard_save_failed')end
+  if was_running then
+   local ok=pcall(service,'restart');if not ok then M.write(path,old);pcall(service,'restart');fail('guard_apply_failed_previous_restored')end
+  end
+  phase('done','guard_saved',false)
  elseif a=='fetch'then
-  guard();phase('fetching','downloading_subscription',true);local url=upload('source'):gsub('%s+$','');local mode=args[2]=='convert'and'convert'or'direct';if not M.run(M.C..'/ax5/subscription-tool.sh ax5 '..mode)then if mode=='direct'then fetched(url,M.R..'/subscription.raw')else fail('subscription_download_failed')end end;phase('downloaded','subscription_downloaded',false)
+  guard();os.remove(M.R..'/subscription.error');os.remove(M.R..'/subscription.endpoint');phase('fetching','downloading_subscription',true);local url=upload('source'):gsub('%s+$','');local mode=args[2]=='convert'and'convert'or'direct';local policy=args[3]or's0a1';if not policy:match('^s[0-8]a[01]$')then fail('invalid_arguments')end;if args[2]=='panel'then fetched(url,M.R..'/subscription.raw') elseif not M.run(M.C..'/ax5/subscription-tool.sh ax5 '..mode..' '..policy)then if mode=='direct'then fetched(url,M.R..'/subscription.raw')else local reason=M.read(M.R..'/subscription.error'):match('^(subscription_[%w_]+)');fail(reason or 'subscription_download_failed')end end;phase('downloaded','subscription_downloaded',false)
  elseif a=='apply'then
   guard();local out=M.json.decode(upload('bounds'));if type(out)~='table'or #out<3 or #out>540 then fail('invalid_upload')end
   local count=0;for _,n in ipairs(out)do

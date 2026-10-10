@@ -13,6 +13,11 @@ fi
 shutdown() { ending=1; touch "$R/manual-stop"; [ -z "$child" ] || kill -TERM "$child" 2>/dev/null; }
 trap shutdown TERM INT
 mkdir -p "$R"
+if [ -f "$R/control-source.pending" ]; then
+ mv "$R/control-source.pending" "$R/control-source"
+else
+ printf 'system\n' > "$R/control-source"
+fi
 date +%s > "$R/started"
 if [ "$KIND" = meta ]; then
  SAFE_PATHS="$C" GOMEMLIMIT=12MiB GOGC=25 "$R/CrashCore" -d "$R" -f "$R/config.yaml" >> "$R/core.log" 2>&1 &

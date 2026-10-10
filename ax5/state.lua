@@ -18,6 +18,7 @@ elseif action=='save-selection' then
   if changed then M.save(M.R..'/selectors.json',p);M.save(M.C..'/configs/selectors.json',p)end
  end
 elseif action=='sample' then
+ dofile(M.C..'/ax5/watchdog.lua')
  if not M.lock('sample.lock',300)then return end
  local ok,err=pcall(function()
   M.trimlogs()

@@ -4,6 +4,8 @@ set -e
 umask 077
 platform=${1:-ax5}
 mode=${2:-direct}
+policy=${3:-s0a0}
+case "$policy" in s[0-8]a[01]) ;; *) exit 2;; esac
 case "$platform" in
  ax5) T=/data/ShellCrash-tool; R=/tmp/ShellCrash; input=$R/upload-source; output=$R/subscription.raw; proxy=http://127.0.0.1:7890;;
  k2p) T=/etc/storage/ShellCrash; R=/tmp/sc-admin; input=$R/native-source; output=$R/sub.raw; . "$T/starts/panel_env.sh"; proxy=http://$PANEL_LAN_IP:7890;;
@@ -14,6 +16,7 @@ diagnostic(){
  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >> "$R/subscription-tool.log.new"
  mv "$R/subscription-tool.log.new" "$R/subscription-tool.log"
 }
+rm -f "$R/subscription.error" "$R/subscription.endpoint"
 case "$mode" in direct|convert) ;; *) exit 2;; esac
 servers=$T/configs/servers.list
 [ -s "$servers" ] || servers=$T/servers.list
@@ -49,22 +52,74 @@ if [ "$platform" = k2p ];then
  cat /etc/ssl/certs/*.crt "$T/configs/subscription-ca.pem" > "$ca" 2>/dev/null || true
 fi
 webget(){
- curl -4 -fsSL ${ca:+--cacert "$ca"} --proxy "$proxy" --noproxy '' --connect-timeout 5 --max-time 18 --max-filesize 262144 "$2" -o "$1" 2>/dev/null ||
- curl -4 -fsSL ${ca:+--cacert "$ca"} --noproxy '*' --connect-timeout 5 --max-time 18 --max-filesize 262144 "$2" -o "$1" 2>/dev/null || { code=$?;diagnostic "ShellCrash subscription: curl=$code, live config retained, converter unchanged";exit 1; }
+ code=0
+ http=$(curl -4 -fsSL -A "$6" ${ca:+--cacert "$ca"} --proxy "$proxy" --noproxy '' --connect-timeout 5 --max-time 18 --max-filesize 262144 -w '%{http_code}' "$2" -o "$1" 2>/dev/null) || code=$?
+ [ "$code" = 0 ] && return 0
+ diagnostic "ShellCrash $mode: proxy request failed, HTTP=${http:-000}, curl=$code; retry direct"
+ code=0
+ http=$(curl -4 -fsSL -A "$6" ${ca:+--cacert "$ca"} --noproxy '*' --connect-timeout 5 --max-time 18 --max-filesize 262144 -w '%{http_code}' "$2" -o "$1" 2>/dev/null) || code=$?
+ [ "$code" = 0 ] && return 0
+ case "$http" in
+  400|401|403|404|429|500|502|503|504) reason=subscription_http_$http;;
+  *) case "$code" in 5|6) reason=subscription_dns_failed;; 7) reason=subscription_connect_failed;; 28) reason=subscription_timeout;; 35|60|77) reason=subscription_tls_failed;; *) reason=subscription_download_failed;; esac;;
+ esac
+ printf '%s\n' "$reason" > "$R/subscription.error"
+ printf '%s\n' "${2%%\?*}" > "$R/subscription.endpoint"
+ diagnostic "ShellCrash $mode: HTTP=${http:-000}, curl=$code; live config retained, converter unchanged"
+ exit 1
 }
 # Tool validates its output, while the adapter performs the final core compatibility check.
 cat > "$work/starts/singbox_config_check.sh" <<'CHECK'
 check_config(){
  [ -s "$core_config_new" ] && [ "$(wc -c < "$core_config_new")" -le 262144 ] || exit 1
  if [ "$SC_SUB_MODE" = convert ];then
-  grep -q '"outbounds"' "$core_config_new" || { diagnostic 'ShellCrash conversion: missing outbounds, live config retained';exit 1; }
+  grep -q '"outbounds"' "$core_config_new" && grep -q '"server"' "$core_config_new" || { diagnostic 'ShellCrash conversion: missing outbounds, live config retained';exit 1; }
  fi
 }
 CHECK
 export SC_SUB_MODE=$mode
-# Upstream prints subscription URLs: never persist its diagnostic output.
-if ! get_core_config >/dev/null 2>&1;then exit 1;fi
-[ -s "$core_config" ] || exit 1
-cp "$core_config" "$output.new"
-mv "$output.new" "$output"
-diagnostic "ShellCrash subscription: candidate retrieved; awaiting parser and core validation"
+# Keep upstream generation in a subshell: no interactive retry, no tool setting changes.
+count=$(grep -aE '^[34][0-9][0-9][[:space:]]' "$servers" | wc -l)
+chosen=$(printf '%s' "$policy" | cut -c 2)
+auto=$(printf '%s' "$policy" | cut -c 4)
+[ "$chosen" != 0 ] || chosen=${server_link:-1}
+case "$chosen" in [1-8]) ;; *) chosen=1;; esac
+[ "$chosen" -le "$count" ] || chosen=1
+order=$chosen
+if [ "$mode" = convert ] && [ "$auto" = 1 ];then
+ n=1;while [ "$n" -le "$count" ] && [ "$n" -le 8 ];do
+  [ "$n" = "$chosen" ] || order="$order $n"
+  n=$((n+1))
+ done
+fi
+for index in $order;do
+ if [ "$mode" = convert ];then
+  endpoint=$(grep -aE '^[34][0-9][0-9][[:space:]]' "$servers" | sed -n "${index}p" | awk '{print $3}')
+  # No subscription is included in this request. 400/422 often mean a missing URL.
+  printf '正在预检转换接口：%s（不含订阅地址）\n' "$endpoint" > "$R/subscription.progress"
+  probe=${endpoint}/sub?target=singbox
+  code=0
+  http=$(curl -4 -sSL ${ca:+--cacert "$ca"} --noproxy '*' --connect-timeout 3 --max-time 6 --max-filesize 16384 -w '%{http_code}' "$probe" -o "$work/probe" 2>/dev/null) || code=$?
+  diagnostic "转换接口预检：${endpoint}；HTTP=${http:-000}，curl=${code}（未发送订阅）"
+  case "$http:$code" in 2??:0|400:0|422:0) ;; *)
+   case "$http" in 400|401|403|404|429|500|502|503|504) reason=subscription_http_$http;; *) case "$code" in 5|6) reason=subscription_dns_failed;; 35|60|77) reason=subscription_tls_failed;; 28) reason=subscription_timeout;; *) reason=subscription_connect_failed;; esac;; esac
+   printf '%s\n' "$reason" > "$R/subscription.error"
+   printf '%s\n' "${endpoint}/sub" > "$R/subscription.endpoint"
+   diagnostic "转换接口不可用，跳过；当前配置保留"
+   continue;;
+  esac
+  printf '正在转换订阅：%s（使用第 %s 个服务）\n' "$endpoint" "$index" > "$R/subscription.progress"
+  diagnostic "转换服务 ${index}：${endpoint}；开始发送订阅进行转换"
+ fi
+ rm -f "$core_config" "$work/tmp/singbox_config.json"
+ if (server_link=$index; retry=3; get_core_config) >/dev/null 2>&1 && [ -s "$core_config" ];then
+  cp "$core_config" "$output.new"
+  mv "$output.new" "$output"
+  rm -f "$R/subscription.error" "$R/subscription.endpoint"
+  diagnostic "订阅候选已获取，等待面板解析与当前内核校验"
+  exit 0
+ fi
+ [ "$mode" = convert ] || break
+ diagnostic "此转换服务失败；尚未替换运行配置"
+done
+exit 1

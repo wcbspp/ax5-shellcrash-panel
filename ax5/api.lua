@@ -24,10 +24,16 @@ function A.read()
   if not M.run('mkdir -p '..M.R)then reply({error='runtime_missing'},500);return end
   if M.read(M.R..'/csrf')==''then M.run('umask 077; head -c 24 /dev/urandom | base64 > '..M.R..'/csrf')end
   reply({token_b64='',control_token=M.read(M.R..'/csrf'):gsub('%s+$','')});return
+ elseif kind=='converters'then
+  local T='/data/ShellCrash-tool';local list=M.read(T..'/configs/servers.list');if list==''then list=M.read(T..'/servers.list')end
+  local entries={};for line in list:gmatch('[^\r\n]+')do
+   local name,url=line:match('^[34]%d%d%s+(%S+)%s+(https?://%S+)');if name and #entries<8 then entries[#entries+1]={id=#entries+1,name=name,url=url}end
+  end
+  reply({servers=entries});return
  elseif kind=='zerotier'then reply(M.zerotier());return
  elseif kind=='zerotierlog'then H.prepare_content('text/plain');H.write(M.read(M.R..'/zerotier-diagnostic',8192));return
  elseif kind=='state'then reply(M.state());return end
- local paths={filter=M.C..'/configs/fake_ip_filter.list',subscription=M.R..'/subscription.raw',memory=M.R..'/memory.csv',incidents=M.R..'/incidents',logs=M.R..'/core.log'}
+ local paths={progress=M.R..'/subscription.progress',subscriptionlog=M.R..'/subscription-tool.log',endpoint=M.R..'/subscription.endpoint',filter=M.C..'/configs/fake_ip_filter.list',subscription=M.R..'/subscription.raw',memory=M.R..'/memory.csv',incidents=M.R..'/incidents',logs=M.R..'/core.log'}
  if not paths[kind]then reply({error='not_found'},404);return end
  H.prepare_content('text/plain');local text=M.read(paths[kind],262144)
  if kind=='logs'then text=text..'\n'..M.read(M.R..'/service.log',32768)..'\n'..M.read(M.R..'/worker.log',32768)..'\n'..M.read(M.R..'/last-exit.txt',16384)..'\n'..M.read(M.R..'/subscription-tool.log',8192);text=text:gsub('https?://[^%s]+','[链接已隐藏]')end
@@ -42,7 +48,7 @@ function A.upload()
 end
 function A.control()
  if H.getenv('REQUEST_METHOD')~='POST'or not csrf()then reply({error='forbidden'},403);return end
- local d=body();local allowed={start=true,stop=true,restart=true,clear=true,cleanup=true,memcfg=true,fetch=true,apply=true,dns=true,rules=true,domainupdate=true,corecheck=true,coreupdate=true,toolcheck=true,toolupdate=true,mirrorsave=true,mirrorsync=true}
+ local d=body();local allowed={start=true,stop=true,restart=true,clear=true,cleanup=true,memcfg=true,fetch=true,apply=true,dns=true,rules=true,domainupdate=true,corecheck=true,coreupdate=true,toolcheck=true,toolupdate=true,guard=true,mirrorsave=true,mirrorsync=true}
  if not d or type(d.script)~='string'then reply({error='invalid_action'},400);return end
  local action=d.script:match('^sc%-(%w+)%.sh$');if not allowed[action]then reply({error='unsupported_action'},400);return end
  local args=d.args or {};if type(args)~='table'or #args>3 then reply({error='invalid_arguments'},400);return end;for _,v in ipairs(args)do if type(v)~='string'or #v>100 or not v:match('^[%w+/=]+$')then reply({error='invalid_arguments'},400);return end end

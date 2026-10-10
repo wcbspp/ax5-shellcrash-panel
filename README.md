@@ -1,59 +1,79 @@
 # 小米 AX5 · ShellCrash 可视化管理面板
 
-在小米路由器管理页中切换节点、更新订阅、管理内核和规则，查看 DNS、日志与运行状态。
+把 ShellCrash 接入小米路由器管理页，在网页里切换节点、更新订阅、切换内核、设置 DNS，查看日志和运行状态。
 
-**需要 ShellCrash 工具。** 本项目基于 [juewuy/ShellCrash 官方仓库](https://github.com/juewuy/ShellCrash)，不是独立代理程序。自动安装会先部署已验证的官方 **1.9.4release**，再安装面板和 AX5 适配层；已有本项目的设备只更新面板源码。
+适用于 **Redmi AX5 / RA67，原厂开发版 1.0.105**。其他型号和固件暂未验证。
 
 ## 安装
 
-适用 **Redmi AX5 / RA67，原厂开发版 1.0.105**。其他型号和固件暂未验证。
+本项目依赖 [ShellCrash](https://github.com/juewuy/ShellCrash)。安装包包含官方 **1.9.4release** 工具和 AX5 适配脚本，首次安装会一并部署。
 
-**先解锁 SSH，再安装面板。** 小米原厂系统需要先开启 SSH，可参考 [XMiR-Patcher](https://github.com/openwrt-xiaomi/xmir-patcher)，按该项目说明核对型号、固件并操作。确认能以 root 登录路由器后，再执行下面的安装命令：
+1. 先开启路由器 SSH，可参考 [XMiR-Patcher](https://github.com/openwrt-xiaomi/xmir-patcher)。
+2. 使用 root 登录路由器，执行：
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wcbspp/ax5-shellcrash-panel/main/bootstrap.sh -o /tmp/ax5-panel-install.sh
 sh /tmp/ax5-panel-install.sh
 ```
 
-脚本自动区分首次安装和本项目更新，核对固件、依赖、空间及安装包。首次安装使用 sing-box 1.12.13、真实 DNS、全直连；完成后进入配置页填写**自己的订阅**，再选择 DNS 模式。不会附带他人的节点或密码。
+3. 登录小米管理页，点击 **ShellCrash → 配置**，填写订阅并更新，再选择节点和 DNS 模式。
 
-已有其他 ShellCrash 部署时，脚本会停止并保留配置，不强行接管。手动安装、预检和迁移限制见[安装说明](docs/部署记录.md)。[下载 v1.0.0](https://github.com/wcbspp/ax5-shellcrash-panel/releases/tag/v1.0.0)
+小米默认管理地址为 `192.168.31.1`；修改过地址的设备使用自己的地址。面板沿用路由器登录会话，无需单独输入密码。
 
-小米默认管理地址为 `192.168.31.1`。登录后点击 **ShellCrash**，沿用路由器登录会话，无需另设面板密码。改过地址则使用自己的地址。
+首次安装默认使用 sing-box 1.12.13、真实 DNS 和全直连。已有本项目的设备会更新页面和适配脚本，保留配置。遇到其他 ShellCrash 部署时，安装脚本退出，不覆盖原安装。
+
+[下载 v1.0.0](https://github.com/wcbspp/ax5-shellcrash-panel/releases/tag/v1.0.0) · [手动安装与文件路径](docs/部署记录.md)
 
 ## 页面预览
 
-小米原厂管理页实机截图：顶部菜单已加入 **ShellCrash**。当前设备使用中继模式，因此原厂菜单显示“中继状态／中继设置”；路由模式的名称可能不同。截图不含浏览器地址栏、设备序列号和 MAC 地址。
+ShellCrash 入口位于小米管理页顶部菜单。
 
-![小米原厂管理页：路由状态与 ShellCrash 入口](docs/小米管理页-路由状态.jpg)
+![小米管理页中的 ShellCrash 入口](docs/小米管理页-路由状态.jpg)
 
-![小米原厂管理页：路由设置与 ShellCrash 入口](docs/小米管理页-路由设置.jpg)
+![小米管理页设置](docs/小米管理页-路由设置.jpg)
 
-进入 ShellCrash 后的节点与监控页面；监控截图中的 ZeroTier 网络信息已隐藏。
+![节点管理](docs/小米控制台-节点.png)
 
-![小米控制台中的节点管理](docs/小米控制台-节点.png)
+![运行监控](docs/小米控制台-监控.jpg)
 
-![小米控制台中的运行监控](docs/小米控制台-监控.png)
-
-## 日常使用
+## 功能
 
 | 页面 | 功能 |
 | --- | --- |
-| 节点、检测 | 切换节点、三次测速取最短值、网站连通检测 |
-| 配置 | ShellCrash 订阅读取／转换、内核切换、正式版工具更新、自定义镜像 |
-| 规则、DNS | 国内 IP 和域名库更新、Fake IP 真实地址例外 |
-| 监控、日志 | 内存阈值、安全清理、异常与恢复记录、按需 ZeroTier 状态 |
+| 节点 | 地区分组、搜索、协议标识、切换节点；测速取三次成功结果中的最短值 |
+| 检测 | 国内直连与国外代理网站的 HTTPS 检测 |
+| 配置 | 更新订阅、切换 sing-box / Mihomo、更新 ShellCrash 正式版、设置镜像和守护方式 |
+| 规则、DNS | 国内 IP 与域名库更新、Mix / 真实 DNS、Fake IP 例外名单 |
+| 监控、日志 | 内存趋势、阈值与安全清理、异常时间和原因、日志清空、ZeroTier 状态查询 |
 
-订阅转换使用 `crash` 中选定的转换服务，会把订阅链接发送给该服务；不会在失败时自动转发给其他服务。直接读取仍保留原读取方式作为兜底。候选配置校验和启动检查通过后才完成更新；失败保留或恢复旧配置。
+## 订阅更新
 
-服务操作经 ShellCrash 入口进入统一的 AX5 服务，内核和数据库下载复用工具源。设备适配层负责配置校验、内存保护、本地缓存、备份回退与状态核对。[与 ShellCrash 的关系](docs/与ShellCrash的关系.md)
+配置页提供三种获取方式，说明随选择变化：
 
-重启优先解压本地内核包，失败再从镜像和工具源恢复。配置单独保存在路由器中，更新内核不会覆盖；手动更新会尝试同步镜像，失败会提示。镜像不是启动前置条件。
+| 方式 | 用途 |
+| --- | --- |
+| 从订阅地址直接下载（默认） | 调用 ShellCrash 向填写的地址下载；失败时尝试面板直接下载 |
+| 通过转换服务下载 | 通过所选 ShellCrash 转换服务获取配置，可选择失败后依次尝试其他服务 |
+| 面板直接下载（兼容） | 使用面板原有下载方式，适合排查工具获取失败的问题 |
 
-当前使用国内域名库和国内 IP 网段，无需完整 GeoSite。[数据库说明](docs/数据库与规则.md) · [Mixbox 与 ZeroTier](docs/Mixbox与ZeroTier.md)
+转换前会用不含订阅地址的请求预检接口，通过后才发送订阅。**转换服务来自互联网，安全性请自行斟酌。** 启用失败轮询可能向多家服务发送订阅地址；预检通过不保证转换成功。直接下载只联系填写的订阅地址。
 
-## 验证
+下载后，面板整理节点并保留现有 DNS 和分流设置，生成当前内核的运行配置：sing-box 使用 JSON，Mihomo 使用 YAML。通过内核校验后保存并加载，失败保留或恢复原配置。错误提示会显示本次订阅地址、出错接口和尝试记录。
 
-已验证 sing-box 1.12.13 / mihomo v1.19.28 切换、本地恢复、DNS 例外及国内分流。首次安装模板通过实机 ARMv7 内核校验；更新安装脚本已在现有设备执行并保留运行服务，未清空现有设备进行全新安装。长期高负载仍需观察。[测试记录](docs/验证记录.md) · [变更记录](CHANGELOG.md)
+支持 AnyTLS、Base64 和 sing-box JSON 节点，以及兼容的 origin/plain、origin/http_simple SSR 链接。兼容 SSR 按 SS（带所需混淆）运行，协议标识显示 SS；其他 SSR 需要 Mihomo，sing-box 会提示未导入数量。转换暂以 sing-box JSON 为中间格式，仅 Mihomo 支持的字段可能无法完整保留；当前未接入 ShellCrash 的 providers 本地生成流程。
 
-公开包不含私人订阅、密码、设备身份或运行配置。组件许可见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
+## 启动、备份与规则
+
+面板与 `crash` 管理同一个代理服务。首页显示开机启动、启动来源和守护状态；配置页可切换系统 procd 守护或每分钟检测，每次只启用一种。
+
+重启优先解压本地内核包，校验失败再从自定义镜像和 ShellCrash 工具源恢复。配置单独保存在 `/data/ShellCrash/configs/`，恢复内核不会覆盖配置。手动更新成功后保存本地文件；配置了镜像上传时会尝试同步，失败提示待重试。
+
+国内分流使用国内 IP 网段和国内域名库，无需安装未引用的完整 GeoSite。Mix 模式对国内域名和例外名单返回真实地址，其余返回 Fake IP；返回真实地址不等于强制直连，流量仍按规则分流。
+
+[与 ShellCrash 的关系](docs/与ShellCrash的关系.md) · [数据库与规则](docs/数据库与规则.md) · [镜像配置](docs/镜像接收器.md) · [Mixbox 与 ZeroTier](docs/Mixbox与ZeroTier.md)
+
+## 测试与许可
+
+实机测试覆盖 sing-box 1.12.13 / Mihomo v1.19.28 切换、订阅更新、DNS 例外、国内分流、重启恢复及守护切换。其他固件和长期高负载仍需单独验证。[测试记录](docs/验证记录.md) · [变更记录](CHANGELOG.md)
+
+发布包不包含私人订阅、密码、设备身份或运行配置。组件许可见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
