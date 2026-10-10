@@ -22,7 +22,7 @@ sh /tmp/ax5-panel-install.sh
 
 首次安装默认使用 sing-box 1.12.13、真实 DNS 和全直连。已有本项目的设备会更新页面和适配脚本，保留配置。遇到其他 ShellCrash 部署时，安装脚本退出，不覆盖原安装。
 
-[下载 v1.0.0](https://github.com/wcbspp/XiaoMiAX5-shellcrash-panel/releases/tag/v1.0.0) · [手动安装与文件路径](docs/部署记录.md)
+[下载 v1.0.1](https://github.com/wcbspp/XiaoMiAX5-shellcrash-panel/releases/tag/v1.0.1) · [手动安装与文件路径](docs/部署记录.md)
 
 ## 页面预览
 
@@ -61,6 +61,8 @@ ShellCrash 入口位于小米管理页顶部菜单。
 下载后，面板整理节点并保留现有 DNS 和分流设置，生成当前内核的运行配置：sing-box 使用 JSON，Mihomo 使用 YAML。通过内核校验后保存并加载，失败保留或恢复原配置。错误提示会显示本次订阅地址、出错接口和尝试记录。
 
 支持 AnyTLS、Base64 和 sing-box JSON 节点，以及兼容的 origin/plain、origin/http_simple SSR 链接。兼容 SSR 按 SS（带所需混淆）运行，协议标识显示 SS；其他 SSR 需要 Mihomo，sing-box 会提示未导入数量。转换暂以 sing-box JSON 为中间格式，仅 Mihomo 支持的字段可能无法完整保留；当前未接入 ShellCrash 的 providers 本地生成流程。
+
+当前订阅导入只更新节点，不导入订阅文件中的策略组、分流规则或 rule-providers。已有 DNS 与分流设置由面板保留；转换服务生成的完整规则目前不会生效。内核本身支持更复杂的规则，但本面板尚未提供完整配置导入与编辑。
 
 ## 启动、备份与规则
 

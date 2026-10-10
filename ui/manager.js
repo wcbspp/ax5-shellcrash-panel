@@ -101,6 +101,13 @@ async function updateDomainDatabase(){
 }
 el('domain-update').onclick=updateDomainDatabase;
 
+function coreUptimeText(s){
+ if(!s.running)return '已停止';
+ const n=s.core_uptime_seconds;
+ if(!Number.isFinite(n)||n<0)return '暂不可用';
+ const seconds=Math.floor(n),days=Math.floor(seconds/86400),hours=Math.floor(seconds%86400/3600),minutes=Math.floor(seconds%3600/60);
+ return (days?days+'天 ':'')+(hours?hours+'小时 ':'')+(minutes?minutes+'分钟 ': '')+(seconds<60?seconds+'秒':'');
+}
 function paintStartup(s){
  const configured=s.guard_mode==='procd'?'系统守护':'每分钟检测';
  const actual=s.guard_runtime==='procd'?'系统守护':s.guard_runtime==='conservative'?'每分钟检测':configured;
@@ -108,7 +115,7 @@ function paintStartup(s){
  el('startup-state').textContent='开机启动：'+(s.autostart===true?'开启':s.autostart===false?'关闭':'待查询')+' · 守护：'+configured+'（'+status+'）';
  const source={boot:'路由器开机',tool:'ShellCrash 工具',panel:'面板操作',watchdog:'异常恢复',system:'系统恢复'}[s.start_source]||'未记录';
  const owner={procd:'系统 procd',shellcrash:'ShellCrash 原生',panel:'面板定时适配'}[s.guard_owner]||'待查询';
- el('startup-source').textContent='启动来源：'+source+' · 守护执行：'+owner;
+ el('startup-source').textContent='启动来源：'+source+' · 守护执行：'+owner+' · 内核运行：'+coreUptimeText(s);
  el('startup-state').title='读取 ShellCrash 设置和运行状态；守护设置与工具同步。';
  if(!guardDirty&&document.activeElement!==el('guard-mode'))el('guard-mode').value=s.guard_mode||'conservative';
  el('guard-mode').disabled=manageBusy||s.active;

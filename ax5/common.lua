@@ -14,6 +14,17 @@ function M.exec(s) local p=io.popen(s);local out=p:read('*a');p:close();return o
 function M.run(s) return os.execute(s)==0 end
 function M.b64(s) local nixio=require('nixio');return nixio.bin.b64encode(s or '') end
 function M.pid() local n=tonumber(M.read(M.R..'/core.pid'));if n and M.read('/proc/'..n..'/cmdline'):find('/tmp/ShellCrash/CrashCore',1,true) then return n end;return 0 end
+-- Linux exposes process start times in USER_HZ (100), independent of wall-clock changes.
+function M.core_uptime(pid)
+ if not pid or pid<=0 then return nil end
+ local now=tonumber(M.read('/proc/uptime'):match('^(%S+)'))
+ local rest=M.read('/proc/'..pid..'/stat'):match('^%d+ %(.+%) (.+)$')
+ if not now or not rest then return nil end
+ local fields={};for v in rest:gmatch('%S+')do fields[#fields+1]=v end
+ local ticks=tonumber(fields[20])
+ if not ticks or ticks<0 or ticks/100>now then return nil end
+ return math.floor(now-ticks/100)
+end
 function M.memory() local d={};for k,v in M.read('/proc/meminfo'):gmatch('([%w_]+):%s+(%d+)')do d[k]=tonumber(v) end;return d end
 function M.limits() local d=M.load(M.C..'/configs/memory.json');local w,p,c=tonumber(d.warning_mb),tonumber(d.protect_mb),tonumber(d.cleanup_mb);if not w or not p or not c or p<12 or w<=p or w>64 or (c~=0 and (c<w or c>96)) then return {warning_mb=20,protect_mb=14,cleanup_mb=20} end;return d end
 function M.request(path,method,body)
@@ -62,7 +73,7 @@ function M.state()
  local sock=M.read('/proc/net/sockstat');local pages=tonumber(sock:match('TCP:[^\n]* mem (%d+)')) or 0
  local incidents=M.read(M.R..'/incidents');local recoveries=0;for _ in incidents:gmatch('\n') do recoveries=recoveries+1 end
  local coreenv=M.read(M.C..'/cache/core.env');local kind=coreenv:match('KIND=([^%s]+)')or'singbox';local ver=coreenv:match('VERSION=([^%s]+)')or'1.12.13'
- local s={running=pid>0,pid=pid,available_kb=avail,free_kb=mem.MemFree or 0,rss_kb=tonumber(stat:match('VmRSS:%s+(%d+)')) or 0,shmem_kb=mem.Shmem or 0,slab_kb=mem.Slab or 0,tcp_kb=pages*4,conntrack=tonumber(M.read('/proc/sys/net/netfilter/nf_conntrack_count')) or 0,pressure=avail<limits.protect_mb*1024 and 'protect' or avail<limits.warning_mb*1024 and 'warning' or 'normal',memory_limits=limits,dns_mode=M.read(M.C..'/configs/dns-mode'):gsub('%s+$',''),url_b64=M.b64(M.read(M.C..'/configs/subscription'):gsub('%s+$','')),core_kind=kind,core_version=ver,core_blob=M.read(M.C..'/cache/core.sha256'):match('^(%x+)'),rules_count=count,rules_date_b64=M.b64(M.read(M.C..'/configs/rules-date')),recoveries=recoveries,cleanup=M.load(M.R..'/cleanup.json')}
+ local s={running=pid>0,pid=pid,core_uptime_seconds=M.core_uptime(pid),available_kb=avail,free_kb=mem.MemFree or 0,rss_kb=tonumber(stat:match('VmRSS:%s+(%d+)')) or 0,shmem_kb=mem.Shmem or 0,slab_kb=mem.Slab or 0,tcp_kb=pages*4,conntrack=tonumber(M.read('/proc/sys/net/netfilter/nf_conntrack_count')) or 0,pressure=avail<limits.protect_mb*1024 and 'protect' or avail<limits.warning_mb*1024 and 'warning' or 'normal',memory_limits=limits,dns_mode=M.read(M.C..'/configs/dns-mode'):gsub('%s+$',''),url_b64=M.b64(M.read(M.C..'/configs/subscription'):gsub('%s+$','')),core_kind=kind,core_version=ver,core_blob=M.read(M.C..'/cache/core.sha256'):match('^(%x+)'),rules_count=count,rules_date_b64=M.b64(M.read(M.C..'/configs/rules-date')),recoveries=recoveries,cleanup=M.load(M.R..'/cleanup.json')}
  local fs=require('nixio.fs');local toolcfg='\n'..M.read('/data/ShellCrash-tool/configs/ShellCrash.cfg')
  s.autostart=not fs.stat('/data/ShellCrash-tool/.dis_startup') and fs.stat('/etc/rc.d/S99shellcrash')~=nil
  s.guard_mode=toolcfg:match('\nstart_old=ON[\r\n]') and 'conservative' or 'procd'
