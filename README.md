@@ -22,7 +22,7 @@ sh /tmp/ax5-panel-install.sh
 
 首次安装默认使用 sing-box 1.12.13、真实 DNS 和全直连。已有本项目的设备会更新页面和适配脚本，保留配置。遇到其他 ShellCrash 部署时，安装脚本退出，不覆盖原安装。
 
-[下载 v1.0.1](https://github.com/wcbspp/XiaoMiAX5-shellcrash-panel/releases/tag/v1.0.1) · [手动安装与文件路径](docs/部署记录.md)
+[下载 v1.0.2](https://github.com/wcbspp/XiaoMiAX5-shellcrash-panel/releases/tag/v1.0.2) · [手动安装与文件路径](docs/部署记录.md)
 
 ## 页面预览
 
@@ -43,7 +43,7 @@ ShellCrash 入口位于小米管理页顶部菜单。
 | 节点 | 地区分组、搜索、协议标识、切换节点；测速取三次成功结果中的最短值 |
 | 检测 | 国内直连与国外代理网站的 HTTPS 检测 |
 | 配置 | 更新订阅、切换 sing-box / Mihomo、更新 ShellCrash 正式版、设置镜像和守护方式 |
-| 规则、DNS | 国内 IP 与域名库更新、Mix / 真实 DNS、Fake IP 例外名单 |
+| 规则、DNS | 运行规则 / 策略组 / 连接查询、国内数据库维护、Mix / 真实 DNS 与 Fake IP 例外 |
 | 监控、日志 | 内存趋势、阈值与安全清理、异常时间和原因、日志清空、ZeroTier 状态查询 |
 
 ## 订阅更新
@@ -79,3 +79,5 @@ ShellCrash 入口位于小米管理页顶部菜单。
 实机测试覆盖 sing-box 1.12.13 / Mihomo v1.19.28 切换、订阅更新、DNS 例外、国内分流、重启恢复及守护切换。其他固件和长期高负载仍需单独验证。[测试记录](docs/验证记录.md) · [变更记录](CHANGELOG.md)
 
 发布包不包含私人订阅、密码、设备身份或运行配置。组件许可见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
+
+规则页可筛选、分页查看内核实际加载的规则、策略组和连接。查询按需执行，不增加后台轮询。[轻量页面验证记录](docs/轻量页面验证.md)

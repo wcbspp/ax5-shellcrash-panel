@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 umask 077
-version=1.0.1
+version=1.0.2
 name=XiaoMiAX5-shellcrash-panel-$version
 base=https://github.com/wcbspp/XiaoMiAX5-shellcrash-panel/releases/download/v$version
 work=$(mktemp -d /tmp/ax5-panel.XXXXXX)

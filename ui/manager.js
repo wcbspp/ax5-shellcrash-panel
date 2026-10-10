@@ -7,8 +7,8 @@ const words={"subscription_http_400":"转换或订阅服务返回 HTTP 400：请
 const decode=s=>new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)));
 async function nativeRead(kind){const r=await fetch(backendBase+'/read?kind='+encodeURIComponent(kind)+'&t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('后台请求失败：'+r.status);return ['state','zerotier','converters'].includes(kind)?r.json():r.text()}
 async function control(script,args=[]){const r=await fetch(backendBase+'/control',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-SC-CSRF':csrf},body:new URLSearchParams({payload:JSON.stringify({script,args})})});if(!r.ok)throw Error('操作请求失败：'+r.status)}
-function showTab(tab){const previous=activeTab;activeTab=tab;for(const t of ['nodes','checks','subscription','rules','dns','monitor','logs']){el(t+'-tab').hidden=t!==tab;el('tab-'+t).classList.toggle('active',t===tab)}if(tab!=='nodes')pauseMeasurements();else if(previous!=='nodes')autoMeasure();if(tab==='logs')loadLogs();if(tab==='monitor'){refreshZeroTier();syncNative().catch(()=>{});loadIncidents();loadMemory(true)};if(tab==='dns')loadDNS();if(tab!=='checks'&&siteBusy)pauseSites();if(tab==='checks'&&(!siteLastTime||siteLastNode!==siteNode()))checkSites()}
-function showService(){if(!nativeState)return;const s=nativeState,previousPressure=lastPressure;lastPressure=s.pressure;running=s.running;if(!dnsDirty&&s.dns_mode!=='unknown')el('dns-mode').value=s.dns_mode;el('rules-summary').textContent=(s.rules_count||4305)+' 条国内 IPv4 网段 · '+(s.rules_date_b64?'最近更新 '+decode(s.rules_date_b64).trim():'当前使用预置规则');const db=s.domain_check?.kind===s.core_kind?s.domain_check:s.domain_database||{};el('domain-summary').textContent='当前 '+(s.domain_file||'—')+(db.sha256?' · SHA256 '+db.sha256.slice(0,12):' · 部署固化版本')+(db.checked?' · 检查 '+new Date(db.checked*1000).toLocaleString('zh-CN',{hour12:false}):db.updated?' · 更新 '+new Date(db.updated*1000).toLocaleString('zh-CN',{hour12:false}):'');el('online').textContent=running?'运行中':'已停止';el('online').classList.toggle('off',!running);paintStartup(s);subscriptionHelp();el('resources').textContent='可用 '+((s.available_kb??s.free_kb)/1024).toFixed(1)+' MB · 内核 '+(s.rss_kb/1024).toFixed(1)+' MB · 异常恢复 '+(s.recoveries||0)+' 次';el('resources').title='异常恢复计数从本次记录启用后开始，清空日志不重置；重启路由器归零。';el('service-start').hidden=running;el('service-stop').hidden=!running;for(const id of ['service-start','service-stop','service-restart','subscription-update','rules-update','domain-update','dns-save','logs-clear','core-check','core-update','mirror-save','mirror-sync','memory-cleanup','memory-limits-save','guard-save'])el(id).disabled=manageBusy||s.active;el('service-restart').hidden=!running;el('panel').hidden=false;el('login').hidden=true;el('nodes-content').hidden=!running;el('stopped').hidden=running;if(!running){el('current').textContent='代理已停止';el('state').textContent='普通路由保持运行'}if(s.url_b64&&!el('subscription-url').value)el('subscription-url').value=decode(s.url_b64);paintSites();paintKernel();paintMirror();paintMonitor();paintTool();el('memory-protection').hidden=s.pressure==='normal'||!s.pressure;el('memory-protection').textContent=s.pressure==='protect'?'内存保护中：暂缓测速和配置更新，代理继续运行':'内存余量偏低，正在自动监测';el('resource-breakdown').textContent='RAM 文件与共享页 '+((s.shmem_kb||0)/1024).toFixed(1)+' MB · 内核数据 '+((s.slab_kb||0)/1024).toFixed(1)+' MB · TCP 缓冲 '+((s.tcp_kb||0)/1024).toFixed(2)+' MB · 连接跟踪 '+(s.conntrack||0);if(s.pressure==='protect'){pauseMeasurements();pauseSites();for(const id of ['subscription-update','rules-update','domain-update','dns-save','core-update'])el(id).disabled=true}else if(previousPressure==='protect'&&running&&!manageBusy){if(activeTab==='nodes')autoMeasure();if(activeTab==='checks')checkSites()}}
+function showTab(tab){const previous=activeTab;activeTab=tab;for(const t of ['nodes','checks','subscription','rules','dns','monitor','logs']){el(t+'-tab').hidden=t!==tab;el('tab-'+t).classList.toggle('active',t===tab)}if(tab!=='nodes')pauseMeasurements();else if(previous!=='nodes')autoMeasure();if(tab!=='rules'&&typeof cancelInspection==='function')cancelInspection();if(tab==='rules'&&typeof loadInspection==='function')loadInspection();if(tab==='logs')loadLogs();if(tab==='monitor'){refreshZeroTier();syncNative().catch(()=>{});loadIncidents();loadMemory(true)};if(tab==='dns')loadDNS();if(tab!=='checks'&&siteBusy)pauseSites();if(tab==='checks'&&(!siteLastTime||siteLastNode!==siteNode()))checkSites()}
+function showService(){if(!nativeState)return;const s=nativeState,previousPressure=lastPressure;lastPressure=s.pressure;running=s.running;if(!dnsDirty&&s.dns_mode!=='unknown')el('dns-mode').value=s.dns_mode;el('rules-summary').textContent=(s.rules_count||4305)+' 条国内 IPv4 网段 · '+(s.rules_date_b64?'最近更新 '+decode(s.rules_date_b64).trim():'当前使用预置规则');const db=s.domain_check?.kind===s.core_kind?s.domain_check:s.domain_database||{};el('domain-summary').textContent='当前 '+(s.domain_file||'—')+(db.sha256?' · SHA256 '+db.sha256.slice(0,12):' · 部署固化版本')+(db.checked?' · 检查 '+new Date(db.checked*1000).toLocaleString('zh-CN',{hour12:false}):db.updated?' · 更新 '+new Date(db.updated*1000).toLocaleString('zh-CN',{hour12:false}):'');el('online').textContent=running?'运行中':'已停止';el('online').classList.toggle('off',!running);paintStartup(s);paintCoreState();subscriptionHelp();el('resources').textContent='可用 '+((s.available_kb??s.free_kb)/1024).toFixed(1)+' MB · 内核 '+(s.rss_kb/1024).toFixed(1)+' MB · 异常恢复 '+(s.recoveries||0)+' 次';el('resources').title='异常恢复计数从本次记录启用后开始，清空日志不重置；重启路由器归零。';el('service-start').hidden=running;el('service-stop').hidden=!running;for(const id of ['service-start','service-stop','service-restart','subscription-update','rules-update','domain-update','dns-save','logs-clear','core-check','core-update','mirror-save','mirror-sync','memory-cleanup','memory-limits-save','guard-save'])el(id).disabled=manageBusy||s.active;el('service-restart').hidden=!running;el('panel').hidden=false;el('login').hidden=true;el('nodes-content').hidden=!running;el('stopped').hidden=running;if(!running){el('current').textContent='代理已停止';el('state').textContent='普通路由保持运行'}if(s.url_b64&&!el('subscription-url').value)el('subscription-url').value=decode(s.url_b64);paintSites();paintKernel();paintMirror();paintMonitor();paintTool();el('memory-protection').hidden=s.pressure==='normal'||!s.pressure;el('memory-protection').textContent=s.pressure==='protect'?'内存保护中：暂缓测速和配置更新，代理继续运行':'内存余量偏低，正在自动监测';el('resource-breakdown').textContent='RAM 文件与共享页 '+((s.shmem_kb||0)/1024).toFixed(1)+' MB · 内核数据 '+((s.slab_kb||0)/1024).toFixed(1)+' MB · TCP 缓冲 '+((s.tcp_kb||0)/1024).toFixed(2)+' MB · 连接跟踪 '+(s.conntrack||0);if(s.pressure==='protect'){pauseMeasurements();pauseSites();for(const id of ['subscription-update','rules-update','domain-update','dns-save','core-update'])el(id).disabled=true}else if(previousPressure==='protect'&&running&&!manageBusy){if(activeTab==='nodes')autoMeasure();if(activeTab==='checks')checkSites()}}
 async function syncNative(){if(!nativeHost)return;nativeState=await nativeRead('state');showService();if(activeTab==='monitor'&&el('memory-details').open)loadMemory();if(running&&!nativeState.active&&!manageBusy&&(!proxies[mainName()]||el('current').textContent==='代理已停止'))await refresh();return nativeState}
 async function waitJob(id,goal='done',limit=120000,messageTarget='operation-message'){const end=Date.now()+limit;while(Date.now()<end){await new Promise(r=>setTimeout(r,2500));const s=await syncNative();if(id&&s.id!==id)throw Error('另一项更新正在进行，请重试');el(messageTarget).textContent=words[decode(s.message_b64||'').trim()]||'正在处理…';if(s.phase==='fetching'){const progress=await nativeRead('progress').catch(()=>'');if(progress.trim())el(messageTarget).textContent=progress.trim()}if(s.phase==='error'&&!s.active)throw Error(words[decode(s.message_b64||'').trim()]||'操作失败，请查看日志');if(s.phase===goal&&!s.active)return s}throw Error('操作仍在后台进行，请刷新状态或查看日志')}
 async function service(action){if(manageBusy)return;pauseMeasurements();pauseSites();manageBusy=true;showService();note('正在'+({start:'启动',stop:'停止',restart:'重启'}[action])+'服务…');try{await control('sc-'+action+'.sh');await waitJob('', 'done',180000);if(running)await refresh();note('');el('operation-message').textContent='操作完成'}catch(e){note(e.message,true)}finally{manageBusy=false;await syncNative().catch(()=>{});showService();if(running){render();autoMeasure()}}}
@@ -112,11 +112,11 @@ function paintStartup(s){
  const configured=s.guard_mode==='procd'?'系统守护':'每分钟检测';
  const actual=s.guard_runtime==='procd'?'系统守护':s.guard_runtime==='conservative'?'每分钟检测':configured;
  const status=s.guard_active?(actual===configured?'运行中':'设置待重启生效'):'已停止';
- el('startup-state').textContent='开机启动：'+(s.autostart===true?'开启':s.autostart===false?'关闭':'待查询')+' · 守护：'+configured+'（'+status+'）';
+ el('startup-state').textContent='自启 '+(s.autostart===true?'开':s.autostart===false?'关':'—')+' · '+actual+(s.guard_active?(actual===configured?'':'（待生效）'):'（未运行）');
  const source={boot:'路由器开机',tool:'ShellCrash 工具',panel:'面板操作',watchdog:'异常恢复',system:'系统恢复'}[s.start_source]||'未记录';
  const owner={procd:'系统 procd',shellcrash:'ShellCrash 原生',panel:'面板定时适配'}[s.guard_owner]||'待查询';
- el('startup-source').textContent='启动来源：'+source+' · 守护执行：'+owner+' · 内核运行：'+coreUptimeText(s);
- el('startup-state').title='读取 ShellCrash 设置和运行状态；守护设置与工具同步。';
+ el('startup-source').textContent='启动来源：'+source+' · 守护执行：'+owner;
+ el('startup-state').title='开机启动：'+(s.autostart?'开启':'关闭')+'；守护设置：'+configured+'；执行状态：'+status+'。';
  if(!guardDirty&&document.activeElement!==el('guard-mode'))el('guard-mode').value=s.guard_mode||'conservative';
  el('guard-mode').disabled=manageBusy||s.active;
 }
@@ -125,7 +125,7 @@ async function saveGuard(){if(manageBusy||nativeState?.active)return;const mode=
 el('guard-save').onclick=saveGuard;
 el('guard-mode').onchange=()=>{guardDirty=true};
 
-function subscriptionHelp(){const method=el('subscription-method').value,kind=nativeState?.core_kind==='meta'?'Mihomo YAML':'sing-box JSON';el('converter-options').hidden=method!=='convert';if(method==='convert')loadConverters();const help={direct:'调用 ShellCrash 从填写的订阅地址下载；获取失败时尝试面板直接下载。',convert:'先预检 ShellCrash 列表中的所选接口，通过后调用 ShellCrash 发送订阅进行转换。'+(el('converter-auto').checked?'失败依次尝试 ShellCrash 列表中的其他服务。':'失败不换其他服务。'),panel:'使用原面板直接下载，不调用 ShellCrash 获取或第三方转换服务。'};el('subscription-help').textContent=(help[method]||help.direct)+' 校验通过后生成 '+kind+' 并加载，失败保留当前配置。'}
+function subscriptionHelp(){const method=el('subscription-method').value,kind=nativeState?.core_kind==='meta'?'Mihomo YAML':'sing-box JSON';el('converter-options').hidden=method!=='convert';if(method==='convert')loadConverters();const help={direct:'调用 ShellCrash 从填写的订阅地址下载；获取失败时尝试面板直接下载。',convert:'先预检 ShellCrash 列表中的所选接口，通过后调用 ShellCrash 发送订阅进行转换。'+(el('converter-auto').checked?'失败依次尝试 ShellCrash 列表中的其他服务。':'失败不换其他服务。'),panel:'使用原面板直接下载，不调用 ShellCrash 获取或第三方转换服务。'};el('subscription-help').textContent=(help[method]||help.direct)+' 当前只更新节点，保留本机 DNS 与分流；校验通过后生成 '+kind+' 并加载，失败保留当前配置。'}
 el('subscription-method').onchange=subscriptionHelp;
 
 let convertersLoaded=false,convertersLoading=false;
@@ -133,3 +133,55 @@ async function loadConverters(){if(convertersLoaded||convertersLoading)return;co
 function converterPolicy(){return 's'+el('converter-server').value+'a'+(el('converter-auto').checked?'1':'0')}
 subscriptionHelp();
 el('converter-auto').onchange=subscriptionHelp;el('converter-server').onchange=subscriptionHelp;
+
+function paintCoreState(){
+ if(!running)return;
+ const main=proxies[mainName()];if(!main)return;
+ const nodes=new Set();for(const group of main.all||[])for(const n of proxies[group]?.all||[])if(!proxies[n]?.all)nodes.add(n);
+ const kind=nativeState?.core_kind==='meta'?'mihomo':'sing-box';
+ const ver=version||nativeState?.core_version||'—';
+ el('state').textContent=(main.all||[]).length+' 个地区 · '+nodes.size+' 个节点 · '+count+' 个连接 · '+kind+' '+ver+' · 运行 '+coreUptimeText(nativeState||{running:true});
+}
+
+let inspectPage=0,inspectKind='rules',inspectQuery='',inspectController=null,inspectSnapshot=null,inspectGeneration=0,inspectTotal=0,inspectLoading=false;
+const inspectLimit=20;
+function inspectRows(kind,data){
+ if(kind==='rules')return (data.rules||[]).map((r,i)=>({title:r.payload||r.rule||r.ruleSet||r.type||'默认规则',detail:[r.type,r.proxy||r.outbound].filter(Boolean).join(' → '),order:i+1}));
+ if(kind==='groups')return Object.entries(data.proxies||{}).filter(([,p])=>Array.isArray(p.all)).map(([name,p])=>({title:label(name),detail:(p.type||'策略组')+' · '+p.all.length+' 个成员 · 当前 '+(p.now||'未选择')}));
+ return (data.connections||[]).map(c=>{const m=c.metadata||{};return {title:m.host||m.destinationIP||'未知目标',detail:[m.network||'',m.sourceIP?m.sourceIP+':'+(m.sourcePort||''):'',...(c.chains||[]),c.rule?c.rule+(c.rulePayload?' / '+c.rulePayload:''):''].filter(Boolean).join(' · ')}});
+}
+function cancelInspection(){inspectGeneration++;if(inspectController)inspectController.abort();inspectController=null;inspectSnapshot=null;inspectLoading=false;el('inspect-list').replaceChildren();el('inspect-summary').textContent='按需查询内核已加载的数据';el('inspect-refresh').disabled=false;el('inspect-previous').disabled=el('inspect-next').disabled=true;el('inspect-page').textContent='';}
+function renderInspection(data){
+ inspectTotal=data.total;inspectPage=data.page;const list=el('inspect-list');list.replaceChildren();
+ for(const r of data.rows){const row=document.createElement('div');row.className='inspect-row';const title=document.createElement('strong'),detail=document.createElement('small');title.textContent=(r.order?r.order+'. ':'')+String(r.title||'—');detail.textContent=String(r.detail||'');row.append(title,detail);list.append(row)}
+ if(!data.rows.length){const empty=document.createElement('p');empty.className='small-note';empty.textContent=inspectKind==='connections'?'当前没有匹配的活动连接':'没有匹配的数据';list.append(empty)}
+ el('inspect-summary').textContent=({rules:'已加载规则',groups:'当前策略组',connections:'当前连接'})[inspectKind]+' · '+data.total+' 项'+(data.checked?' · '+new Date(data.checked*1000).toLocaleTimeString('zh-CN',{hour12:false}):'');
+ el('inspect-page').textContent=(data.total?data.page+1:0)+' / '+Math.ceil(data.total/inspectLimit);
+ el('inspect-previous').disabled=inspectLoading||data.page<=0;el('inspect-next').disabled=inspectLoading||(data.page+1)*inspectLimit>=data.total;
+}
+async function loadInspection(reset=false){
+ if(activeTab!=='rules'||document.hidden)return;
+ if(manageBusy||nativeState?.active){el('inspect-summary').textContent='正在处理配置，请稍后查询';return}
+ if(!running){el('inspect-summary').textContent='代理已停止，启动后可查询运行数据';return}
+ if(nativeState?.pressure==='protect'){el('inspect-summary').textContent='内存保护中，暂缓查询';return}
+ if(reset){inspectPage=0;inspectSnapshot=null}
+ if(inspectController)inspectController.abort();const controller=new AbortController();inspectController=controller;const generation=++inspectGeneration;inspectLoading=true;el('inspect-refresh').disabled=true;el('inspect-previous').disabled=el('inspect-next').disabled=true;el('inspect-summary').textContent='正在查询…';
+ try{
+  let data;
+  if(typeof backendBase!=='undefined'&&apiBase===backendBase+'/api'){
+   const params=new URLSearchParams({kind:'inspect',view:inspectKind,page:String(inspectPage),q:inspectQuery});
+   const r=await fetch(backendBase+'/read?'+params,{cache:'no-store',signal:controller.signal});data=await r.json();if(!r.ok)throw Error(data.error||'查询失败：'+r.status);
+  }else{
+   if(!inspectSnapshot){const d=await api(({rules:'/rules',groups:'/proxies',connections:'/connections'})[inspectKind],'GET',undefined,controller.signal);if(generation!==inspectGeneration)return;inspectSnapshot={rows:inspectRows(inspectKind,d),checked:Math.floor(Date.now()/1000)}}
+   const rows=inspectSnapshot.rows.filter(r=>(r.title+' '+r.detail).toLowerCase().includes(inspectQuery.toLowerCase()));inspectPage=Math.min(inspectPage,Math.max(0,Math.ceil(rows.length/inspectLimit)-1));data={rows:rows.slice(inspectPage*inspectLimit,(inspectPage+1)*inspectLimit),total:rows.length,page:inspectPage,checked:inspectSnapshot.checked};
+  }
+  if(generation!==inspectGeneration)return;if(data.total>0&&data.page*inspectLimit>=data.total){inspectPage=Math.floor((data.total-1)/inspectLimit);loadInspection();return}inspectLoading=false;renderInspection(data);
+ }catch(e){if(generation!==inspectGeneration||e.name==='AbortError')return;el('inspect-list').replaceChildren();el('inspect-summary').textContent=e.message;el('inspect-page').textContent='';}
+ finally{if(generation===inspectGeneration){inspectLoading=false;inspectController=null;el('inspect-refresh').disabled=false;}}
+}
+el('inspect-refresh').onclick=()=>loadInspection(true);
+el('inspect-kind').onchange=()=>{inspectKind=el('inspect-kind').value;inspectQuery=el('inspect-query').value.trim();loadInspection(true)};
+el('inspect-search-form').onsubmit=e=>{e.preventDefault();inspectQuery=el('inspect-query').value.trim();loadInspection(true)};
+el('inspect-previous').onclick=()=>{if(inspectLoading||inspectPage<=0)return;inspectPage--;loadInspection()};
+el('inspect-next').onclick=()=>{if(inspectLoading||(inspectPage+1)*inspectLimit>=inspectTotal)return;inspectPage++;loadInspection()};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelInspection()});window.addEventListener('pagehide',cancelInspection);

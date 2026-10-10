@@ -32,6 +32,9 @@ function A.read()
   reply({servers=entries});return
  elseif kind=='zerotier'then reply(M.zerotier());return
  elseif kind=='zerotierlog'then H.prepare_content('text/plain');H.write(M.read(M.R..'/zerotier-diagnostic',8192));return
+ elseif kind=='inspect'then
+  local d,err,status=dofile(M.C..'/ax5/inspect.lua').query(H.formvalue('view')or'',tonumber(H.formvalue('page')or'0'),H.formvalue('q')or'')
+  reply(d or{error=err},status);return
  elseif kind=='state'then reply(M.state());return end
  local paths={progress=M.R..'/subscription.progress',subscriptionlog=M.R..'/subscription-tool.log',endpoint=M.R..'/subscription.endpoint',filter=M.C..'/configs/fake_ip_filter.list',subscription=M.R..'/subscription.raw',memory=M.R..'/memory.csv',incidents=M.R..'/incidents',logs=M.R..'/core.log'}
  if not paths[kind]then reply({error='not_found'},404);return end
