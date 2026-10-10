@@ -4,7 +4,7 @@ import hashlib, io, tarfile, zipfile
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 version=(root/'VERSION').read_text().strip()
-name='ax5-shellcrash-panel-'+version
+name='XiaoMiAX5-shellcrash-panel-'+version
 dist=root/'dist';dist.mkdir(exist_ok=True)
 files=[]
 for entry in ['README.md','install.sh','bootstrap.sh','vendor','examples','VERSION','CHANGELOG.md','LICENSE','NOTICE','ax5','ui','zerotier','cloud','docs','tool-patches','tests','tools']:

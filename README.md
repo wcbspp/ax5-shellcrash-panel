@@ -12,7 +12,7 @@
 2. 使用 root 登录路由器，执行：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wcbspp/ax5-shellcrash-panel/main/bootstrap.sh -o /tmp/ax5-panel-install.sh
+curl -fsSL https://raw.githubusercontent.com/wcbspp/XiaoMiAX5-shellcrash-panel/main/bootstrap.sh -o /tmp/ax5-panel-install.sh
 sh /tmp/ax5-panel-install.sh
 ```
 
@@ -22,7 +22,7 @@ sh /tmp/ax5-panel-install.sh
 
 首次安装默认使用 sing-box 1.12.13、真实 DNS 和全直连。已有本项目的设备会更新页面和适配脚本，保留配置。遇到其他 ShellCrash 部署时，安装脚本退出，不覆盖原安装。
 
-[下载 v1.0.0](https://github.com/wcbspp/ax5-shellcrash-panel/releases/tag/v1.0.0) · [手动安装与文件路径](docs/部署记录.md)
+[下载 v1.0.0](https://github.com/wcbspp/XiaoMiAX5-shellcrash-panel/releases/tag/v1.0.0) · [手动安装与文件路径](docs/部署记录.md)
 
 ## 页面预览
 
